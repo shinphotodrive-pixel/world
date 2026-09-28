@@ -6,6 +6,7 @@ interface HeaderProps {
   setActiveView: (view: 'archive' | 'timeline' | 'synchronous' | 'bookmarks') => void;
   onOpenQuiz: () => void;
   onOpenSearch: () => void;
+  onScrollToTerrainMap: () => void;
   savedCount: number;
 }
 
@@ -14,6 +15,7 @@ export const Header: React.FC<HeaderProps> = ({
   setActiveView,
   onOpenQuiz,
   onOpenSearch,
+  onScrollToTerrainMap,
   savedCount,
 }) => {
   return (
@@ -62,6 +64,12 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             동시대 동서양 비교
+          </button>
+          <button
+            onClick={onScrollToTerrainMap}
+            className="cursor-pointer transition-colors py-1 hover:text-amber-900 flex items-center gap-1 text-stone-600 hover:text-stone-900"
+          >
+            <span>시대별 지형 지도</span>
           </button>
           <button
             onClick={() => setActiveView('bookmarks')}
@@ -138,6 +146,12 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           동서양 비교
+        </button>
+        <button
+          onClick={onScrollToTerrainMap}
+          className="px-2 py-1 whitespace-nowrap text-stone-600 hover:text-amber-900"
+        >
+          지형 지도
         </button>
         <button
           onClick={() => setActiveView('bookmarks')}

@@ -18,6 +18,7 @@ import { BookmarksView } from './components/BookmarksView';
 import { DetailModal } from './components/DetailModal';
 import { QuizModal } from './components/QuizModal';
 import { SearchDialog } from './components/SearchDialog';
+import { HistoricalTerrainMap } from './components/HistoricalTerrainMap';
 import {
   Globe,
   Landmark,
@@ -27,6 +28,7 @@ import {
   Coins,
   HelpCircle,
   ChevronUp,
+  Map as MapIcon,
 } from 'lucide-react';
 
 const STORAGE_BOOKMARKS_KEY = 'history_archive_bookmarks';
@@ -113,6 +115,9 @@ export default function App() {
       const el = document.getElementById(sec.id);
       if (el) observer.observe(el);
     });
+
+    const mapEl = document.getElementById('terrain-map');
+    if (mapEl) observer.observe(mapEl);
 
     return () => observer.disconnect();
   }, [activeView, searchQuery, selectedCategory]);
@@ -213,6 +218,7 @@ export default function App() {
         setActiveView={setActiveView}
         onOpenQuiz={() => setIsQuizOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
+        onScrollToTerrainMap={() => scrollToSection('terrain-map')}
         savedCount={bookmarkedIds.size}
       />
 
@@ -261,6 +267,28 @@ export default function App() {
                         <span className="truncate">{sec.title}</span>
                       </button>
                     ))}
+
+                    <div className="pt-2 mt-2 border-t border-stone-200">
+                      <button
+                        onClick={() => scrollToSection('terrain-map')}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center gap-2.5 cursor-pointer ${
+                          activeSectionId === 'terrain-map'
+                            ? 'bg-amber-100/70 text-amber-950 font-bold'
+                            : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+                        }`}
+                      >
+                        <span
+                          className={
+                            activeSectionId === 'terrain-map'
+                              ? 'text-amber-800'
+                              : 'text-stone-400'
+                          }
+                        >
+                          <MapIcon className="w-4 h-4" />
+                        </span>
+                        <span className="truncate font-semibold">시대별 지형 지도</span>
+                      </button>
+                    </div>
                   </nav>
 
                   <div className="mt-5 pt-4 border-t border-stone-100 px-3 text-[11px] text-stone-500 leading-relaxed">
@@ -298,6 +326,11 @@ export default function App() {
                       </button>
                     </div>
                   )}
+
+                  {/* Historical Topographical Terrain Map at Bottom */}
+                  <HistoricalTerrainMap
+                    onSelectArchiveItem={(item) => setSelectedItem(item)}
+                  />
                 </main>
               </div>
             </div>
@@ -368,6 +401,12 @@ export default function App() {
               className="hover:text-stone-900 transition-colors cursor-pointer"
             >
               동서양 비교
+            </button>
+            <button
+              onClick={() => scrollToSection('terrain-map')}
+              className="hover:text-stone-900 transition-colors cursor-pointer"
+            >
+              시대별 지형 지도
             </button>
             <button
               onClick={() => setIsQuizOpen(true)}
