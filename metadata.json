@@ -1,0 +1,6 @@
+{
+  "name": "히스토리 아카이브 - 세계사의 모든 것",
+  "description": "고대 문명부터 제국의 흥망, 감염병, 세계 대전, 미스터리까지 아우르는 고품격 인터랙티브 세계사 아카이브",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
