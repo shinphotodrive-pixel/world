@@ -4,6 +4,7 @@ import {
   HISTORICAL_TERRAIN_IMAGE,
   HistoricalNation,
   REAL_GEOGRAPHIC_FEATURES,
+  COUNTRY_NAME_KO,
 } from '../data/terrainMapData';
 import {
   Compass,
@@ -14,18 +15,23 @@ import {
   ZoomOut,
   RotateCcw,
   BookOpen,
+  Layers,
+  Eye,
+  Sliders,
+  Sparkles,
 } from 'lucide-react';
 import { HistoryItem } from '../types/history';
 import { getAllHistoryItems } from '../data/historyData';
 import * as topojson from 'topojson-client';
-import worldData from 'world-atlas/countries-110m.json';
+import worldData from 'world-atlas/countries-50m.json';
 import { geoNaturalEarth1, geoPath, geoGraticule } from 'd3-geo';
 
 interface HistoricalTerrainMapProps {
   onSelectArchiveItem?: (item: HistoryItem) => void;
 }
 
-type RegionFocus = 'world' | 'east-asia' | 'europe' | 'middle-east' | 'americas';
+type RegionFocus = 'world' | 'east-asia' | 'europe' | 'middle-east' | 'americas' | 'south-asia';
+type BorderStyle = 'crisp' | 'dashed' | 'antique';
 
 export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
   onSelectArchiveItem,
@@ -38,6 +44,10 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [showRivers, setShowRivers] = useState<boolean>(true);
   const [showMountains, setShowMountains] = useState<boolean>(true);
+  const [showSeas, setShowSeas] = useState<boolean>(true);
+  const [showAllBorders, setShowAllBorders] = useState<boolean>(true);
+  const [showInternalBorders, setShowInternalBorders] = useState<boolean>(true);
+  const [borderStyle, setBorderStyle] = useState<BorderStyle>('crisp');
   const [territoryMode, setTerritoryMode] = useState<'all' | 'selected'>('all');
 
   const currentEra = TERRAIN_ERAS[selectedEraIndex];
@@ -54,16 +64,18 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
   const viewportSettings = useMemo(() => {
     switch (regionFocus) {
       case 'east-asia':
-        return { center: [115, 36] as [number, number], scale: 620 };
+        return { center: [115, 36] as [number, number], scale: 640 };
       case 'europe':
-        return { center: [18, 46] as [number, number], scale: 720 };
+        return { center: [18, 46] as [number, number], scale: 740 };
       case 'middle-east':
-        return { center: [48, 32] as [number, number], scale: 740 };
+        return { center: [46, 30] as [number, number], scale: 760 };
       case 'americas':
-        return { center: [-85, 30] as [number, number], scale: 380 };
+        return { center: [-85, 30] as [number, number], scale: 390 };
+      case 'south-asia':
+        return { center: [78, 24] as [number, number], scale: 720 };
       case 'world':
       default:
-        return { center: [15, 18] as [number, number], scale: 175 };
+        return { center: [15, 18] as [number, number], scale: 178 };
     }
   }, [regionFocus]);
 
@@ -81,24 +93,99 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
     return geoPath().projection(projection);
   }, [projection]);
 
-  // Convert TopoJSON to GeoJSON features
-  const geoLand = useMemo(() => {
-    return topojson.feature(
-      worldData as any,
-      (worldData as any).objects.land
-    );
-  }, []);
+  // High-Resolution World Geometries from countries-50m.json
+  const { countryGeomMap, allBordersPath, landFeature, landOutlinePath } = useMemo(() => {
+    const rawData = worldData as any;
+    const geomMap = new Map<string, any>();
+    if (rawData.objects?.countries?.geometries) {
+      rawData.objects.countries.geometries.forEach((g: any) => {
+        if (g.properties && g.properties.name) {
+          geomMap.set(g.properties.name, g);
+        }
+      });
+    }
 
-  const geoCountries = useMemo(() => {
-    return topojson.feature(
-      worldData as any,
-      (worldData as any).objects.countries
+    // All international border lines between every country on earth
+    const bordersMesh = topojson.mesh(
+      rawData,
+      rawData.objects.countries,
+      (a: any, b: any) => a !== b
     );
-  }, []);
+    const allBordersPath = pathGenerator(bordersMesh as any) || '';
+
+    // Landmass & Coastline outline
+    const landFeature = topojson.feature(rawData, rawData.objects.land);
+    const coastlinesMesh = topojson.mesh(rawData, rawData.objects.land);
+    const landOutlinePath = pathGenerator(coastlinesMesh as any) || '';
+
+    return {
+      countryGeomMap: geomMap,
+      allBordersPath,
+      landFeature,
+      landOutlinePath,
+    };
+  }, [pathGenerator]);
 
   const graticule = useMemo(() => {
     return geoGraticule()();
   }, []);
+
+  const graticulePath = useMemo(() => {
+    return pathGenerator(graticule) || '';
+  }, [pathGenerator, graticule]);
+
+  const landPath = useMemo(() => {
+    return pathGenerator(landFeature as any) || '';
+  }, [pathGenerator, landFeature]);
+
+  // Compute precise historical nation territory polygons and crisp borders
+  const nationTerritoryData = useMemo(() => {
+    const rawData = worldData as any;
+    return currentEra.nations.map((nation) => {
+      const geoms = nation.countryNames
+        .map((name) => countryGeomMap.get(name))
+        .filter(Boolean);
+
+      let mergedPath = '';
+      let outerBorderPath = '';
+      let internalBordersPath = '';
+
+      if (geoms.length > 0) {
+        try {
+          // 1. Merged full territory polygon
+          const mergedGeom = topojson.merge(rawData, geoms);
+          mergedPath = pathGenerator(mergedGeom as any) || '';
+
+          // 2. Exact outer frontier border line of the empire
+          const outerBorderMesh = topojson.mesh(
+            rawData,
+            { type: 'GeometryCollection', geometries: geoms } as any,
+            (a: any, b: any) => a === b || !b
+          );
+          outerBorderPath = pathGenerator(outerBorderMesh as any) || '';
+
+          // 3. Internal provincial / regional division borders within the empire
+          if (geoms.length > 1) {
+            const internalMesh = topojson.mesh(
+              rawData,
+              { type: 'GeometryCollection', geometries: geoms } as any,
+              (a: any, b: any) => a !== b
+            );
+            internalBordersPath = pathGenerator(internalMesh as any) || '';
+          }
+        } catch (e) {
+          console.error('Territory generation warning:', nation.id, e);
+        }
+      }
+
+      return {
+        nation,
+        mergedPath,
+        outerBorderPath,
+        internalBordersPath,
+      };
+    });
+  }, [currentEra, countryGeomMap, pathGenerator]);
 
   const handleSelectNation = (nation: HistoricalNation) => {
     setSelectedNationId(nation.id);
@@ -121,6 +208,16 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
     setRegionFocus('world');
   };
 
+  // Convert nation's modern country names to Korean
+  const modernCountriesInKorean = useMemo(() => {
+    return selectedNation.countryNames.map((name) => COUNTRY_NAME_KO[name] || name);
+  }, [selectedNation]);
+
+  const hoveredNation = useMemo(() => {
+    if (!hoveredNationId) return null;
+    return currentEra.nations.find((n) => n.id === hoveredNationId) || null;
+  }, [currentEra, hoveredNationId]);
+
   return (
     <section id="terrain-map" className="scroll-mt-24 border-t-2 border-stone-300 pt-12 pb-16">
       {/* Header */}
@@ -128,13 +225,13 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
         <div>
           <div className="text-xs uppercase tracking-widest text-amber-900 font-serif font-semibold mb-1 flex items-center gap-1.5">
             <Compass className="w-4 h-4 text-amber-800" />
-            <span>HISTORICAL GEOPOLITICAL ATLAS · 시대별 국가 영역 및 지형도</span>
+            <span>HISTORICAL GEOPOLITICAL ATLAS · 정밀 지형 지도 및 시대별 영토 경계선</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900 tracking-tight">
-            세계 지형 지도와 시대별 국가 영역
+            세계 지형 지도와 시대별 국가 경계선
           </h2>
           <p className="mt-1 text-sm text-stone-600 max-w-3xl leading-relaxed">
-            실제 대륙 해안선과 산맥·하천 위에 각 시대별 제국과 국가들의 <strong>실제 역사적 영토 경계(강역 폴리곤)</strong>를 색상별로 정확하게 구현했습니다.
+            고해상도 자연 지형(해안선·산맥·하천)과 <strong>각 시대별 제국·국가의 정밀 국경선(외곽 국경 및 내부 영역선)</strong>을 실제 지도 데이터(Natural Earth 50m) 기반으로 세부 렌더링했습니다.
           </p>
         </div>
 
@@ -149,7 +246,7 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              시대별 영토 영역도
+              시대별 영토·국경도
             </button>
             <button
               onClick={() => setViewMode('atlas')}
@@ -237,6 +334,14 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
                 중동·서아시아
               </button>
               <button
+                onClick={() => setRegionFocus('south-asia')}
+                className={`px-2 py-1 rounded text-[11px] font-medium transition cursor-pointer ${
+                  regionFocus === 'south-asia' ? 'bg-white text-stone-900 font-bold shadow-2xs' : 'text-stone-600'
+                }`}
+              >
+                남아시아
+              </button>
+              <button
                 onClick={() => setRegionFocus('americas')}
                 className={`px-2 py-1 rounded text-[11px] font-medium transition cursor-pointer ${
                   regionFocus === 'americas' ? 'bg-white text-stone-900 font-bold shadow-2xs' : 'text-stone-600'
@@ -246,45 +351,118 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
               </button>
             </div>
 
-            {/* Layer Checkboxes */}
-            <div className="flex items-center gap-2.5 ml-1 pl-2 border-l border-stone-300 text-[11px] text-stone-600">
-              <div className="flex items-center bg-stone-200/60 p-0.5 rounded">
-                <button
-                  onClick={() => setTerritoryMode('all')}
-                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition cursor-pointer ${
-                    territoryMode === 'all' ? 'bg-amber-900 text-white font-semibold' : 'text-stone-600'
-                  }`}
-                >
-                  전체 영토 표시
-                </button>
-                <button
-                  onClick={() => setTerritoryMode('selected')}
-                  className={`px-2 py-0.5 rounded text-[10px] font-medium transition cursor-pointer ${
-                    territoryMode === 'selected' ? 'bg-amber-900 text-white font-semibold' : 'text-stone-600'
-                  }`}
-                >
-                  선택 국가만
-                </button>
-              </div>
+            {/* Territory Display Mode */}
+            <div className="flex items-center bg-stone-200/60 p-0.5 rounded">
+              <button
+                onClick={() => setTerritoryMode('all')}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium transition cursor-pointer ${
+                  territoryMode === 'all' ? 'bg-amber-900 text-white font-semibold' : 'text-stone-600'
+                }`}
+              >
+                전체 영토 표시
+              </button>
+              <button
+                onClick={() => setTerritoryMode('selected')}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium transition cursor-pointer ${
+                  territoryMode === 'selected' ? 'bg-amber-900 text-white font-semibold' : 'text-stone-600'
+                }`}
+              >
+                선택 국가만
+              </button>
+            </div>
+          </div>
+        </div>
 
-              <label className="flex items-center gap-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showRivers}
-                  onChange={(e) => setShowRivers(e.target.checked)}
-                  className="rounded text-amber-900 focus:ring-0"
-                />
-                <span>하천</span>
-              </label>
-              <label className="flex items-center gap-1 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showMountains}
-                  onChange={(e) => setShowMountains(e.target.checked)}
-                  className="rounded text-amber-900 focus:ring-0"
-                />
-                <span>산맥</span>
-              </label>
+        {/* Detail Layer & Border Customization Bar */}
+        <div className="flex items-center justify-between flex-wrap gap-3 pb-3 mb-3 border-b border-stone-200/70 text-xs text-stone-600">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="font-semibold text-stone-700 flex items-center gap-1 text-[11px]">
+              <Layers className="w-3.5 h-3.5 text-amber-800" />
+              <span>국경선 및 지형 레이어:</span>
+            </span>
+
+            <label className="flex items-center gap-1 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showAllBorders}
+                onChange={(e) => setShowAllBorders(e.target.checked)}
+                className="rounded text-amber-900 focus:ring-0"
+              />
+              <span className="font-medium text-stone-800">세계 국경선 상세</span>
+            </label>
+
+            <label className="flex items-center gap-1 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showInternalBorders}
+                onChange={(e) => setShowInternalBorders(e.target.checked)}
+                className="rounded text-amber-900 focus:ring-0"
+              />
+              <span>제국 내부 관할구역선</span>
+            </label>
+
+            <label className="flex items-center gap-1 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showRivers}
+                onChange={(e) => setShowRivers(e.target.checked)}
+                className="rounded text-amber-900 focus:ring-0"
+              />
+              <span>하천망</span>
+            </label>
+
+            <label className="flex items-center gap-1 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showMountains}
+                onChange={(e) => setShowMountains(e.target.checked)}
+                className="rounded text-amber-900 focus:ring-0"
+              />
+              <span>산맥 능선</span>
+            </label>
+
+            <label className="flex items-center gap-1 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showSeas}
+                onChange={(e) => setShowSeas(e.target.checked)}
+                className="rounded text-amber-900 focus:ring-0"
+              />
+              <span>해양 명칭</span>
+            </label>
+          </div>
+
+          {/* Border line style selector */}
+          <div className="flex items-center gap-1.5 text-[11px]">
+            <span className="text-stone-500">국경선 표현:</span>
+            <div className="flex items-center bg-stone-200/70 p-0.5 rounded text-[10px]">
+              <button
+                onClick={() => setBorderStyle('crisp')}
+                className={`px-1.5 py-0.5 rounded transition cursor-pointer ${
+                  borderStyle === 'crisp' ? 'bg-white text-stone-900 font-bold shadow-2xs' : 'text-stone-600'
+                }`}
+                title="정밀 실선 국경선"
+              >
+                정밀 실선
+              </button>
+              <button
+                onClick={() => setBorderStyle('dashed')}
+                className={`px-1.5 py-0.5 rounded transition cursor-pointer ${
+                  borderStyle === 'dashed' ? 'bg-white text-stone-900 font-bold shadow-2xs' : 'text-stone-600'
+                }`}
+                title="역사 지도 점선 국경선"
+              >
+                고지도 점선
+              </button>
+              <button
+                onClick={() => setBorderStyle('antique')}
+                className={`px-1.5 py-0.5 rounded transition cursor-pointer ${
+                  borderStyle === 'antique' ? 'bg-white text-stone-900 font-bold shadow-2xs' : 'text-stone-600'
+                }`}
+                title="엔틱 잉크 풍 국경선"
+              >
+                앤틱 풍
+              </button>
             </div>
           </div>
         </div>
@@ -305,7 +483,7 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
                 <div className="absolute inset-0 bg-amber-950/15 pointer-events-none" />
               </div>
             ) : (
-              /* Real World Vector Topography & True Territory Map */
+              /* Real World Vector Topography & Detailed Territory Boundaries Map */
               <svg
                 viewBox={`0 0 ${width} ${height}`}
                 className="w-full h-full block"
@@ -313,12 +491,13 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
               >
                 <defs>
                   {/* Parchment Ocean Texture Pattern */}
-                  <pattern id="sea-waves" width="30" height="30" patternUnits="userSpaceOnUse">
+                  <pattern id="sea-waves" width="28" height="28" patternUnits="userSpaceOnUse">
                     <path
-                      d="M 0 15 Q 7.5 10 15 15 T 30 15"
+                      d="M 0 14 Q 7 9 14 14 T 28 14"
                       fill="none"
-                      stroke="#D8CFBD"
+                      stroke="#D5CCA9"
                       strokeWidth="0.5"
+                      opacity="0.7"
                     />
                   </pattern>
 
@@ -339,44 +518,84 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
                         y2="8"
                         stroke={nat.color}
                         strokeWidth="1.5"
-                        strokeOpacity="0.4"
+                        strokeOpacity="0.45"
                       />
                     </pattern>
                   ))}
+
+                  {/* Filter for Border Glow Effect */}
+                  <filter id="border-glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="1.5" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                  </filter>
                 </defs>
 
                 {/* Ocean Background with Archival Gradient */}
-                <rect width={width} height={height} fill="#E1D9C8" />
-                <rect width={width} height={height} fill="url(#sea-waves)" opacity="0.6" />
+                <rect width={width} height={height} fill="#E3DAC7" />
+                <rect width={width} height={height} fill="url(#sea-waves)" opacity="0.65" />
 
                 {/* Graticule Latitude/Longitude Grid Lines */}
                 <path
-                  d={pathGenerator(graticule) || ''}
+                  d={graticulePath}
                   fill="none"
-                  stroke="#D0C6B2"
+                  stroke="#D0C5B0"
                   strokeWidth="0.5"
                   strokeDasharray="2 3"
                 />
 
+                {/* Latitude Reference Markers along the side */}
+                <text x="8" y="275" fontSize="7.5" fill="#8C7D68" fontFamily="serif">0° 적도</text>
+                <text x="8" y="165" fontSize="7.5" fill="#8C7D68" fontFamily="serif">30°N</text>
+                <text x="8" y="85" fontSize="7.5" fill="#8C7D68" fontFamily="serif">60°N</text>
+                <text x="8" y="380" fontSize="7.5" fill="#8C7D68" fontFamily="serif">30°S</text>
+
                 {/* Real Continental Landmasses (Detailed Natural Earth Geography) */}
                 <path
-                  d={pathGenerator(geoLand as any) || ''}
+                  d={landPath}
                   fill="#DFD5C0"
-                  stroke="#BFAFA0"
+                  stroke="#B0A08D"
                   strokeWidth="0.8"
                 />
 
-                {/* Real Contemporary Coastline/Country Inset Lines (Faint Guide) */}
+                {/* Antique Coastline Waterlining Halo (Double Shoreline Effect) */}
                 <path
-                  d={pathGenerator(geoCountries as any) || ''}
+                  d={landOutlinePath}
                   fill="none"
-                  stroke="#C8BCA8"
-                  strokeWidth="0.4"
-                  strokeDasharray="1.5 2"
+                  stroke="#C5B6A0"
+                  strokeWidth="1.6"
+                  opacity="0.4"
+                />
+                <path
+                  d={landOutlinePath}
+                  fill="none"
+                  stroke="#7A6852"
+                  strokeWidth="0.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 />
 
-                {/* HISTORICAL COUNTRY TERRITORY POLYGONS (Accurate Geographic Boundaries) */}
-                {currentEra.nations.map((nation) => {
+                {/* DETAILED GLOBAL COUNTRY BORDERS (세부 국경선) */}
+                {showAllBorders && (
+                  <path
+                    d={allBordersPath}
+                    fill="none"
+                    stroke={borderStyle === 'antique' ? '#8C7760' : '#A3927C'}
+                    strokeWidth={borderStyle === 'crisp' ? '0.75' : '0.65'}
+                    strokeDasharray={
+                      borderStyle === 'dashed'
+                        ? '2 2.5'
+                        : borderStyle === 'antique'
+                        ? '3 1.5 1 1.5'
+                        : 'none'
+                    }
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    opacity={0.8}
+                  />
+                )}
+
+                {/* HISTORICAL ERA COUNTRY TERRITORY POLYGONS & BOUNDARIES */}
+                {nationTerritoryData.map(({ nation, mergedPath, outerBorderPath, internalBordersPath }) => {
                   const isSelected = selectedNation.id === nation.id;
                   const isHovered = hoveredNationId === nation.id;
 
@@ -385,13 +604,7 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
                     return null;
                   }
 
-                  // Generate SVG path for the territory polygon using d3-geo
-                  const geoJsonFeature = {
-                    type: 'Feature',
-                    geometry: nation.territoryBoundary,
-                  };
-                  const territoryPath = pathGenerator(geoJsonFeature as any);
-                  if (!territoryPath) return null;
+                  if (!mergedPath) return null;
 
                   return (
                     <g
@@ -401,25 +614,70 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
                       onMouseEnter={() => setHoveredNationId(nation.id)}
                       onMouseLeave={() => setHoveredNationId(null)}
                     >
-                      {/* Territory Solid Base Fill */}
+                      {/* Territory Solid Base Fill with Archival Hue */}
                       <path
-                        d={territoryPath}
+                        d={mergedPath}
                         fill={nation.color}
-                        fillOpacity={isSelected ? 0.38 : isHovered ? 0.3 : 0.2}
-                        stroke={nation.color}
-                        strokeWidth={isSelected ? 2.5 : isHovered ? 2 : 1.2}
-                        strokeLinejoin="round"
-                        strokeLinecap="round"
+                        fillOpacity={isSelected ? 0.42 : isHovered ? 0.35 : 0.22}
+                        className="transition-all duration-200"
                       />
 
-                      {/* Vintage Cartographic Hatch Pattern on Selected Nation */}
-                      {isSelected && (
+                      {/* Vintage Cartographic Hatch Pattern on Selected/Hovered Nation */}
+                      {(isSelected || isHovered) && (
                         <path
-                          d={territoryPath}
+                          d={mergedPath}
                           fill={`url(#hatch-${nation.id})`}
-                          fillOpacity="0.7"
+                          fillOpacity={isSelected ? '0.75' : '0.45'}
                           pointerEvents="none"
                         />
+                      )}
+
+                      {/* Internal Provincial Boundaries within Empire (제국 내부 관할/주 경계선) */}
+                      {showInternalBorders && internalBordersPath && (
+                        <path
+                          d={internalBordersPath}
+                          fill="none"
+                          stroke={nation.color}
+                          strokeWidth={isSelected ? '1.2' : '0.8'}
+                          strokeDasharray="2.5 3"
+                          strokeOpacity={isSelected ? '0.85' : '0.55'}
+                          pointerEvents="none"
+                        />
+                      )}
+
+                      {/* CRISP HISTORICAL OUTER BORDER FRONTIER LINE (제국/국가 정밀 외곽 국경선) */}
+                      {outerBorderPath && (
+                        <>
+                          {/* Soft colored border halo/glow for maximum clarity */}
+                          <path
+                            d={outerBorderPath}
+                            fill="none"
+                            stroke={nation.color}
+                            strokeWidth={isSelected ? '4' : isHovered ? '3.2' : '2.2'}
+                            strokeOpacity={isSelected ? '0.55' : '0.35'}
+                            strokeLinejoin="round"
+                            strokeLinecap="round"
+                            pointerEvents="none"
+                          />
+
+                          {/* Sharp, crisp boundary stroke */}
+                          <path
+                            d={outerBorderPath}
+                            fill="none"
+                            stroke={nation.color}
+                            strokeWidth={isSelected ? '2.4' : isHovered ? '2.0' : '1.4'}
+                            strokeDasharray={
+                              borderStyle === 'dashed'
+                                ? '4 2'
+                                : borderStyle === 'antique'
+                                ? '5 1.5 2 1.5'
+                                : 'none'
+                            }
+                            strokeLinejoin="round"
+                            strokeLinecap="round"
+                            pointerEvents="none"
+                          />
+                        </>
                       )}
                     </g>
                   );
@@ -441,10 +699,11 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
 
                     return (
                       <g key={idx} pointerEvents="none">
+                        {/* River path with authentic hydrographic blue */}
                         <path
                           d={pathString}
                           fill="none"
-                          stroke="#547E96"
+                          stroke="#48758F"
                           strokeWidth="1.8"
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -452,12 +711,15 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
                         {labelPoint && (
                           <text
                             x={labelPoint[0] + 4}
-                            y={labelPoint[1] - 4}
+                            y={labelPoint[1] - 3}
                             fontSize="8"
                             fontFamily="serif"
-                            fill="#33566B"
+                            fill="#2D5369"
                             fontStyle="italic"
-                            fontWeight="500"
+                            fontWeight="600"
+                            stroke="#FAF7F2"
+                            strokeWidth="2"
+                            paintOrder="stroke fill"
                           >
                             {river.name}
                           </text>
@@ -474,51 +736,61 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
 
                     return (
                       <g key={idx} transform={`translate(${pt[0]}, ${pt[1]})`} pointerEvents="none">
+                        {/* Mountain Ridge Engraved Symbol */}
                         <path
-                          d="M -9 4 L -4 -5 L 1 4 M -2 4 L 3 -7 L 8 4"
-                          stroke="#7D6B52"
+                          d="M -10 4 L -5 -6 L 0 4 M -3 4 L 3 -8 L 9 4 M 5 4 L 9 -4 L 14 4"
+                          stroke="#6A5A43"
                           strokeWidth="1.4"
                           fill="none"
                           strokeLinecap="round"
+                          strokeLinejoin="round"
                         />
                         <text
-                          x="0"
-                          y="13"
+                          x="2"
+                          y="14"
                           textAnchor="middle"
                           fontSize="8.5"
                           fontFamily="serif"
                           fontStyle="italic"
                           fontWeight="bold"
-                          fill="#5C4D38"
+                          fill="#4E3E2A"
+                          stroke="#FAF7F2"
+                          strokeWidth="2.5"
+                          paintOrder="stroke fill"
                         >
-                          {mt.name}
+                          ▲ {mt.name}
                         </text>
                       </g>
                     );
                   })}
 
                 {/* Sea & Ocean Labels in Archival Typography */}
-                {REAL_GEOGRAPHIC_FEATURES.filter((f) => f.type === 'sea').map((sea, idx) => {
-                  const pt = projection(sea.coordinates);
-                  if (!pt) return null;
+                {showSeas &&
+                  REAL_GEOGRAPHIC_FEATURES.filter((f) => f.type === 'sea').map((sea, idx) => {
+                    const pt = projection(sea.coordinates);
+                    if (!pt) return null;
 
-                  return (
-                    <text
-                      key={idx}
-                      x={pt[0]}
-                      y={pt[1]}
-                      textAnchor="middle"
-                      fontSize="9"
-                      fontFamily="serif"
-                      fontStyle="italic"
-                      fill="#6C8391"
-                      opacity="0.85"
-                      pointerEvents="none"
-                    >
-                      {sea.name}
-                    </text>
-                  );
-                })}
+                    return (
+                      <text
+                        key={idx}
+                        x={pt[0]}
+                        y={pt[1]}
+                        textAnchor="middle"
+                        fontSize="9"
+                        fontFamily="serif"
+                        fontStyle="italic"
+                        fill="#587180"
+                        fontWeight="500"
+                        opacity="0.88"
+                        stroke="#FAF7F2"
+                        strokeWidth="1.5"
+                        paintOrder="stroke fill"
+                        pointerEvents="none"
+                      >
+                        {sea.name}
+                      </text>
+                    );
+                  })}
 
                 {/* Territory Center Labels (Printed inside country territory like historical maps) */}
                 {currentEra.nations.map((nation) => {
@@ -533,11 +805,11 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
                       transform={`translate(${pt[0]}, ${pt[1]})`}
                       pointerEvents="none"
                     >
-                      {/* Capital City Dot */}
+                      {/* Capital City Dot & Pin */}
                       <circle
                         cx="0"
                         cy="0"
-                        r={isSelected ? 4 : 3}
+                        r={isSelected ? 4.5 : isHovered ? 4 : 3}
                         fill={nation.color}
                         stroke="#ffffff"
                         strokeWidth="1.5"
@@ -547,12 +819,12 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
                         x="0"
                         y={-9}
                         textAnchor="middle"
-                        fontSize={isSelected ? '11' : isHovered ? '10' : '9.5'}
+                        fontSize={isSelected ? '12' : isHovered ? '11' : '10'}
                         fontFamily="serif"
                         fontWeight="bold"
                         fill={isSelected ? '#1c1917' : '#292524'}
                         stroke="#FAF7F2"
-                        strokeWidth="2.5"
+                        strokeWidth="3"
                         paintOrder="stroke fill"
                       >
                         {nation.shortName}
@@ -561,11 +833,11 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
                         x="0"
                         y={14}
                         textAnchor="middle"
-                        fontSize="8"
+                        fontSize="8.5"
                         fontFamily="sans-serif"
-                        fill="#57534e"
+                        fill="#44403c"
                         stroke="#FAF7F2"
-                        strokeWidth="2"
+                        strokeWidth="2.5"
                         paintOrder="stroke fill"
                       >
                         ★ {nation.capital.split(',')[0].split('(')[0]}
@@ -575,23 +847,35 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
                 })}
 
                 {/* Ancient Map Compass Rose in Corner */}
-                <g transform="translate(65, 480) scale(0.6)" pointerEvents="none">
-                  <circle cx="0" cy="0" r="36" fill="none" stroke="#A89A84" strokeWidth="0.8" />
+                <g transform="translate(65, 480) scale(0.62)" pointerEvents="none">
+                  <circle cx="0" cy="0" r="36" fill="none" stroke="#9A8B74" strokeWidth="0.8" />
+                  <circle cx="0" cy="0" r="33" fill="none" stroke="#9A8B74" strokeWidth="0.4" strokeDasharray="2 2" />
                   <path
                     d="M 0 -45 L 6 -12 L 18 -16 L 12 -6 L 45 0 L 12 6 L 18 16 L 6 12 L 0 45 L -6 12 L -18 16 L -12 6 L -45 0 L -12 -6 L -18 -16 L -6 -12 Z"
                     fill="#8A775F"
                   />
                   <path
                     d="M 0 -45 L 0 0 L 45 0 L 0 0 L 0 45 L 0 0 L -45 0 Z"
-                    stroke="#3D3327"
+                    stroke="#2D2419"
                     strokeWidth="1"
                   />
-                  <text x="-4" y="-50" fontSize="12" fontWeight="bold" fontFamily="serif" fill="#4A3D2A">
+                  <text x="-4" y="-50" fontSize="12" fontWeight="bold" fontFamily="serif" fill="#3D3020">
                     N
                   </text>
-                  <text x="50" y="4" fontSize="12" fontWeight="bold" fontFamily="serif" fill="#4A3D2A">
+                  <text x="50" y="4" fontSize="12" fontWeight="bold" fontFamily="serif" fill="#3D3020">
                     E
                   </text>
+                </g>
+
+                {/* Cartographic Scale Bar */}
+                <g transform="translate(130, 515)" pointerEvents="none">
+                  <line x1="0" y1="0" x2="100" y2="0" stroke="#5A4E3E" strokeWidth="2" />
+                  <line x1="0" y1="-3" x2="0" y2="3" stroke="#5A4E3E" strokeWidth="1.5" />
+                  <line x1="50" y1="-2" x2="50" y2="2" stroke="#5A4E3E" strokeWidth="1" />
+                  <line x1="100" y1="-3" x2="100" y2="3" stroke="#5A4E3E" strokeWidth="1.5" />
+                  <text x="0" y="-5" fontSize="7" fontFamily="serif" fill="#5A4E3E">0</text>
+                  <text x="45" y="-5" fontSize="7" fontFamily="serif" fill="#5A4E3E">1,000</text>
+                  <text x="90" y="-5" fontSize="7" fontFamily="serif" fill="#5A4E3E">2,000 km</text>
                 </g>
               </svg>
             )}
@@ -617,8 +901,8 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
                   onMouseEnter={() => setHoveredNationId(nation.id)}
                   onMouseLeave={() => setHoveredNationId(null)}
                   className="absolute -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full cursor-pointer z-10 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
-                  title={`${nation.name} (${nation.capital}) 영토 선택`}
-                  aria-label={`${nation.name} 영토 선택`}
+                  title={`${nation.name} (${nation.capital}) 영토 및 국경 선택`}
+                  aria-label={`${nation.name} 영토 및 국경 선택`}
                 >
                   <div
                     className={`w-3.5 h-3.5 rounded-full border-2 border-white shadow-md ${
@@ -630,8 +914,29 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
               );
             })}
 
+            {/* Hover Floating HUD info tooltip */}
+            {hoveredNation && (
+              <div className="absolute top-3 left-3 z-20 bg-stone-900/90 text-white backdrop-blur-xs px-3 py-2 rounded-lg shadow-md border border-stone-700 pointer-events-none text-xs flex items-center gap-2 max-w-md animate-fade-in">
+                <span
+                  className="w-3 h-3 rounded-full shrink-0 border border-white"
+                  style={{ backgroundColor: hoveredNation.color }}
+                />
+                <div>
+                  <div className="font-bold font-serif flex items-center gap-1.5">
+                    <span>{hoveredNation.name}</span>
+                    <span className="text-[10px] text-stone-300 font-sans font-normal">
+                      ({hoveredNation.era})
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-stone-300 mt-0.5">
+                    수도: ★ {hoveredNation.capital} · 국경 내 현대 국가 {hoveredNation.countryNames.length}개국 포괄
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Floating Map Zoom Controls */}
-            <div className="absolute bottom-3 right-3 flex flex-col gap-1 z-20 bg-white/90 backdrop-blur-xs border border-stone-300 rounded-lg p-1 shadow-sm">
+            <div className="absolute bottom-3 right-3 flex flex-col gap-1 z-20 bg-white/95 backdrop-blur-xs border border-stone-300 rounded-lg p-1 shadow-sm">
               <button
                 onClick={() => handleZoom(0.3)}
                 className="p-1.5 text-stone-700 hover:text-stone-900 hover:bg-stone-100 rounded transition cursor-pointer"
@@ -673,7 +978,7 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
                       {selectedNation.region}
                     </span>
                     <span
-                      className="w-3 h-3 rounded-full border border-white shadow-xs"
+                      className="w-3.5 h-3.5 rounded-full border border-white shadow-xs"
                       style={{ backgroundColor: selectedNation.color }}
                     />
                   </div>
@@ -687,6 +992,26 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
                 </div>
                 <div className="mt-1 text-xs text-stone-700 font-medium">
                   수도 / 중심지: <span className="font-semibold text-stone-900">{selectedNation.capital}</span>
+                </div>
+              </div>
+
+              {/* Modern Sovereign Countries within the Historical Frontier */}
+              <div>
+                <h4 className="text-xs uppercase tracking-widest text-stone-500 font-serif font-semibold mb-1.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-800" />
+                    <span>역사적 국경 내 포괄 현대 국가 ({modernCountriesInKorean.length}개국)</span>
+                  </span>
+                </h4>
+                <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto p-2 bg-[#FAF7F2] rounded-lg border border-stone-200 text-xs">
+                  {modernCountriesInKorean.map((cName, idx) => (
+                    <span
+                      key={idx}
+                      className="bg-white border border-stone-200 text-stone-700 px-1.5 py-0.5 rounded text-[11px] font-medium"
+                    >
+                      {cName}
+                    </span>
+                  ))}
                 </div>
               </div>
 
@@ -751,7 +1076,7 @@ export const HistoricalTerrainMap: React.FC<HistoricalTerrainMapProps> = ({
         {/* Nations Color Legend Strip (Shows actual polygon color tags) */}
         <div className="mt-5 pt-3 border-t border-stone-200 flex items-center gap-2 overflow-x-auto text-xs pb-1 scrollbar-none">
           <span className="text-stone-500 shrink-0 font-serif font-semibold">
-            {currentEra.title} 국가별 영토 범례:
+            {currentEra.title} 국가별 영토·국경 범례:
           </span>
           {currentEra.nations.map((nat) => (
             <button

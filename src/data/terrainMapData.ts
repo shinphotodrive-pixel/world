@@ -1,8 +1,3 @@
-export interface HistoricalTerritoryPolygon {
-  type: 'Polygon' | 'MultiPolygon';
-  coordinates: number[][][] | number[][][][]; // GeoJSON polygon format [lng, lat]
-}
-
 export interface HistoricalNation {
   id: string;
   name: string;
@@ -17,7 +12,7 @@ export interface HistoricalNation {
   historicalSignificance: string;
   majorGeographicFeatures: string[];
   relatedArchiveId?: string;
-  territoryBoundary: HistoricalTerritoryPolygon;
+  countryNames: string[]; // Actual geographic country geometries to merge
 }
 
 export interface TerrainEra {
@@ -51,12 +46,7 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         historicalSignificance: '인류 최초의 설형문자, 바퀴, 60진법 발명 및 최초의 도시 문명 형성.',
         majorGeographicFeatures: ['티그리스-유프라테스강', '비옥한 초승달 지대', '페르시아만 연안'],
         relatedArchiveId: 'sumer-civilization',
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [44.0, 32.5], [45.5, 33.0], [47.5, 32.2], [48.5, 30.8], [48.0, 29.8], [46.5, 30.2], [44.8, 31.0], [44.0, 32.5]
-          ]]
-        }
+        countryNames: ['Iraq', 'Kuwait']
       },
       {
         id: 'ancient-egypt',
@@ -71,12 +61,7 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         terrainDescription: '나일강 정기 범람이 만든 비옥한 흑색토 지대와 나일 델타 삼각주. 동서의 광대한 사하라 사막이 천연 방벽 역할을 수행했습니다.',
         historicalSignificance: '태양력, 기하학, 피라미드 축조 및 파라오 중심의 신권 통치.',
         majorGeographicFeatures: ['나일강 삼각주', '사하라 사막', '홍해 연안'],
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [29.5, 31.5], [32.5, 31.5], [34.0, 27.5], [33.5, 23.5], [31.0, 23.5], [30.0, 27.0], [29.5, 31.5]
-          ]]
-        }
+        countryNames: ['Egypt']
       },
       {
         id: 'gojoseon',
@@ -92,12 +77,7 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         historicalSignificance: '한민족 최초의 국가로 청동기·철기 문화를 바탕으로 독자적 세력권을 형성.',
         majorGeographicFeatures: ['요하 유역', '대동강', '낭림산맥'],
         relatedArchiveId: 'korea-parallel-chronicle',
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [120.5, 41.5], [124.0, 42.5], [128.0, 41.0], [127.5, 38.0], [125.0, 37.8], [123.5, 39.5], [121.0, 40.0], [120.5, 41.5]
-          ]]
-        }
+        countryNames: ['North Korea', 'South Korea']
       },
       {
         id: 'ancient-china-shang-zhou',
@@ -112,12 +92,7 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         terrainDescription: '황하 중하류의 광대한 황토 고원과 화북 평야. 비옥한 황토 토양과 잦은 황하 범람을 통제하며 농경 관개 발전.',
         historicalSignificance: '갑골문자 발명, 청동기 제기, 봉건제와 천명(天命) 사상 정립.',
         majorGeographicFeatures: ['황하(黃河)', '화북평야', '태행산맥'],
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [108.0, 36.5], [116.0, 37.5], [119.0, 35.5], [117.5, 32.5], [111.0, 32.0], [107.5, 34.0], [108.0, 36.5]
-          ]]
-        }
+        countryNames: ['China']
       },
       {
         id: 'ancient-greece',
@@ -132,12 +107,7 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         terrainDescription: '발칸반도 남단의 험준한 산악 지형과 수많은 섬들이 흩어진 에게해 해안선. 고립된 계곡 지형이 개별 도시국가(폴리스) 분립 촉진.',
         historicalSignificance: '민주정치, 철학, 올림픽, 서양 예술과 과학의 원천.',
         majorGeographicFeatures: ['에게해', '펠로폰네소스 반도', '올림포스산'],
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [20.5, 39.5], [23.5, 41.0], [26.5, 39.0], [28.0, 37.0], [24.5, 35.5], [21.5, 36.5], [20.5, 39.5]
-          ]]
-        }
+        countryNames: ['Greece', 'Cyprus']
       },
       {
         id: 'achaemenid-persia',
@@ -153,12 +123,10 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         historicalSignificance: '키루스 대제의 관용 정책, 왕의 길(Royal Road), 캄비세스 2세의 이집트 원정.',
         majorGeographicFeatures: ['이란 고원', '자그로스 산맥', '카스피해 남안'],
         relatedArchiveId: 'cambyses-lost-army',
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [27.0, 40.0], [40.0, 42.0], [55.0, 42.0], [68.0, 40.0], [70.0, 30.0], [60.0, 25.0], [48.0, 28.0], [32.0, 28.0], [28.0, 36.0], [27.0, 40.0]
-          ]]
-        }
+        countryNames: [
+          'Iran', 'Iraq', 'Turkey', 'Syria', 'Jordan', 'Lebanon', 'Israel', 'Palestine',
+          'Egypt', 'Armenia', 'Azerbaijan', 'Afghanistan'
+        ]
       }
     ]
   },
@@ -182,12 +150,13 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         historicalSignificance: '팍스 로마나 200년, 로마법 대전, 가도망 건설, 313년 기독교 공인.',
         majorGeographicFeatures: ['지중해', '알프스산맥', '도나우강', '라인강'],
         relatedArchiveId: 'roman-empire',
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [-6.0, 36.0], [-9.0, 42.0], [-1.0, 52.0], [6.0, 51.0], [14.0, 48.0], [24.0, 45.0], [36.0, 41.0], [38.0, 34.0], [33.0, 28.0], [20.0, 31.0], [-2.0, 34.0], [-6.0, 36.0]
-          ]]
-        }
+        countryNames: [
+          'Italy', 'Spain', 'Portugal', 'France', 'United Kingdom', 'Belgium', 'Switzerland',
+          'Austria', 'Slovenia', 'Croatia', 'Bosnia and Herz.', 'Serbia', 'Montenegro',
+          'Albania', 'Macedonia', 'Greece', 'Bulgaria', 'Romania', 'Turkey', 'Syria',
+          'Lebanon', 'Israel', 'Palestine', 'Jordan', 'Egypt', 'Libya', 'Tunisia',
+          'Algeria', 'Morocco', 'Cyprus'
+        ]
       },
       {
         id: 'han-dynasty',
@@ -203,12 +172,7 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         historicalSignificance: '한족·한자 문화권 확립, 비단길 개척(장건), 유교 국교화.',
         majorGeographicFeatures: ['관중 평야', '하서주랑', '타림 분지', '장강'],
         relatedArchiveId: 'china-qin-han',
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [85.0, 42.0], [98.0, 40.0], [112.0, 41.0], [122.0, 40.5], [120.0, 32.0], [115.0, 23.0], [106.0, 22.0], [102.0, 26.0], [100.0, 33.0], [85.0, 42.0]
-          ]]
-        }
+        countryNames: ['China']
       },
       {
         id: 'korean-three-kingdoms',
@@ -224,12 +188,7 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         historicalSignificance: '광개토대왕·장수왕의 대륙 경영, 한강 유역 패권 교체와 신라의 삼국통일 기초.',
         majorGeographicFeatures: ['백두대간', '한강 유역', '압록강', '동해'],
         relatedArchiveId: 'korea-parallel-chronicle',
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [122.0, 42.5], [126.0, 44.0], [130.0, 43.0], [130.0, 36.0], [128.5, 34.8], [126.0, 34.2], [125.0, 38.0], [123.5, 40.0], [122.0, 42.5]
-          ]]
-        }
+        countryNames: ['South Korea', 'North Korea']
       },
       {
         id: 'sassanid-persia',
@@ -244,12 +203,9 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         terrainDescription: '이란 고원과 메소포타미아 저지대 사이. 로마와 국경을 맞대며 실크로드 중계 무역을 독점한 전략적 요충지.',
         historicalSignificance: '조로아스터교 국교화, 로마 제국과의 오랜 패권 대결, 화려한 페르시아 금속 공예.',
         majorGeographicFeatures: ['자그로스 산맥', '티그리스 하류', '페르시아만'],
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [40.0, 36.0], [48.0, 40.0], [60.0, 39.0], [68.0, 35.0], [65.0, 27.0], [55.0, 25.5], [47.0, 29.0], [40.0, 36.0]
-          ]]
-        }
+        countryNames: [
+          'Iran', 'Iraq', 'Azerbaijan', 'Armenia', 'Turkmenistan', 'Afghanistan', 'Pakistan'
+        ]
       },
       {
         id: 'kushan-empire',
@@ -264,12 +220,7 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         terrainDescription: '힌두쿠시 산맥과 인더스강 상류, 간다라 계곡. 인도와 중앙아시아, 중국을 잇는 산악 관문 지형.',
         historicalSignificance: '동서 문화 융합의 간다라 미술 탄생, 대승불교의 동아시아 전파 고속도로.',
         majorGeographicFeatures: ['힌두쿠시 산맥', '카이베르 고개', '인더스강 상류'],
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [66.0, 38.0], [75.0, 39.0], [78.0, 32.0], [75.0, 26.0], [68.0, 27.0], [66.0, 38.0]
-          ]]
-        }
+        countryNames: ['Pakistan', 'Afghanistan', 'Tajikistan', 'Uzbekistan']
       }
     ]
   },
@@ -293,12 +244,7 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         historicalSignificance: '유스티니아누스 법전, 아야 소피아 대성당, 고대 그리스·로마 고전문헌 보존.',
         majorGeographicFeatures: ['보스포루스 해협', '골든혼', '아나톨리아 고원', '발칸 반도'],
         relatedArchiveId: 'ottoman-empire',
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [19.0, 42.0], [26.0, 43.5], [33.0, 41.5], [37.0, 39.0], [33.0, 36.5], [26.0, 36.0], [21.0, 38.0], [19.0, 42.0]
-          ]]
-        }
+        countryNames: ['Greece', 'Turkey', 'Bulgaria', 'Macedonia', 'Albania', 'Cyprus', 'Italy']
       },
       {
         id: 'abbasid-caliphate',
@@ -313,12 +259,10 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         terrainDescription: '티그리스 강변의 원형 도시 바그다드를 중심. 지중해와 인도양을 잇는 해양·육상 실크로드의 심장부.',
         historicalSignificance: '지혜의 집(지식 번역 운동), 대수학·천문학·의학 발전(아비센나), 이슬람 르네상스.',
         majorGeographicFeatures: ['티그리스강', '아라비아 사막', '페르시아만'],
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [25.0, 32.0], [36.0, 37.0], [48.0, 38.0], [60.0, 37.0], [68.0, 30.0], [55.0, 22.0], [42.0, 20.0], [32.0, 25.0], [25.0, 32.0]
-          ]]
-        }
+        countryNames: [
+          'Iraq', 'Syria', 'Jordan', 'Lebanon', 'Israel', 'Palestine', 'Saudi Arabia',
+          'Egypt', 'Iran', 'Kuwait', 'United Arab Emirates', 'Oman'
+        ]
       },
       {
         id: 'mongol-empire',
@@ -333,12 +277,10 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         terrainDescription: '끝없는 몽골 초원 스텝(Steppe) 지대에서 유라시아 대륙 횡단. 혹한의 기후와 기동력을 살린 기마 군단의 무대.',
         historicalSignificance: '인류 역사상 최대의 연속 육상 제국, 팍스 몽골리카와 참치(역참제) 네트워크.',
         majorGeographicFeatures: ['몽골 고원', '고비 사막', '알타이 산맥', '유라시아 스텝'],
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [35.0, 52.0], [60.0, 58.0], [90.0, 56.0], [125.0, 52.0], [122.0, 32.0], [105.0, 25.0], [80.0, 32.0], [55.0, 34.0], [40.0, 38.0], [35.0, 52.0]
-          ]]
-        }
+        countryNames: [
+          'Mongolia', 'China', 'Russia', 'Kazakhstan', 'Uzbekistan', 'Kyrgyzstan',
+          'Turkmenistan', 'Iran', 'Iraq'
+        ]
       },
       {
         id: 'goryeo-dynasty',
@@ -354,12 +296,7 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         historicalSignificance: '금속활자 최초 발명(직지심체요절), 팔만대장경 판각, 벽란도 국제 무역(Korea 명칭 유래).',
         majorGeographicFeatures: ['예성강 벽란도', '강화도', '태백산맥'],
         relatedArchiveId: 'korea-parallel-chronicle',
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [124.5, 40.0], [128.0, 40.8], [129.5, 38.5], [129.0, 35.5], [126.0, 34.5], [125.5, 38.0], [124.5, 40.0]
-          ]]
-        }
+        countryNames: ['South Korea', 'North Korea']
       },
       {
         id: 'holy-roman-empire',
@@ -374,12 +311,9 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         terrainDescription: '라인강, 엘베강, 도나우강 유역의 중부 유럽 평원 및 삼림 지대. 수많은 제후국과 자유도시로 분할된 복합 영토.',
         historicalSignificance: '중세 봉건 기사도, 황제와 교황의 서임권 투쟁(카노사의 굴욕), 이후 종교개혁의 진앙지.',
         majorGeographicFeatures: ['라인강', '도나우강', '검은 숲(슈바르츠발트)'],
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [5.5, 52.5], [14.0, 54.0], [17.0, 50.0], [15.5, 46.0], [11.0, 44.5], [6.5, 46.5], [5.5, 52.5]
-          ]]
-        }
+        countryNames: [
+          'Germany', 'Austria', 'Switzerland', 'Czechia', 'Belgium', 'Netherlands', 'Slovenia'
+        ]
       }
     ]
   },
@@ -403,12 +337,11 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         historicalSignificance: '1453년 우르반 거포로 비잔티움 함락, 지중해 무역 독점으로 서양의 대항해시대 유발, 쉴레이만 대제 전성기.',
         majorGeographicFeatures: ['보스포루스 해협', '다르다넬스 해협', '토로스 산맥', '발칸 반도'],
         relatedArchiveId: 'ottoman-empire',
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [17.0, 46.0], [25.0, 48.0], [38.0, 45.0], [45.0, 38.0], [48.0, 31.0], [40.0, 25.0], [32.0, 24.0], [20.0, 32.0], [15.0, 40.0], [17.0, 46.0]
-          ]]
-        }
+        countryNames: [
+          'Turkey', 'Greece', 'Bulgaria', 'Macedonia', 'Albania', 'Serbia', 'Bosnia and Herz.',
+          'Romania', 'Syria', 'Lebanon', 'Israel', 'Palestine', 'Jordan', 'Iraq', 'Egypt',
+          'Libya', 'Tunisia', 'Cyprus'
+        ]
       },
       {
         id: 'joseon-dynasty',
@@ -424,12 +357,7 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         historicalSignificance: '1453년 수양대군의 계유정난, 훈민정음 창제, 성리학적 유교 관료제, 조선왕조실록 및 정약용 흠흠신서.',
         majorGeographicFeatures: ['한양 내사산', '한강', '백두산', '압록강-두만강'],
         relatedArchiveId: 'korea-parallel-chronicle',
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [124.5, 40.0], [128.0, 42.0], [130.8, 42.8], [129.5, 38.0], [129.2, 35.0], [126.5, 34.0], [125.8, 38.0], [124.5, 40.0]
-          ]]
-        }
+        countryNames: ['South Korea', 'North Korea']
       },
       {
         id: 'qing-dynasty',
@@ -445,12 +373,7 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         historicalSignificance: '강희·옹정·건륭 3대 130년 태평성세, 팔기군 제도, 사고전서 편찬, 1840년 아편전쟁 패배.',
         majorGeographicFeatures: ['만주 평원', '자금성', '티베트 고원', '타클라마칸 사막'],
         relatedArchiveId: 'china-ming-qing',
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [75.0, 38.0], [85.0, 48.0], [115.0, 52.0], [135.0, 50.0], [130.0, 42.0], [122.0, 31.0], [118.0, 24.0], [105.0, 22.0], [90.0, 28.0], [78.0, 32.0], [75.0, 38.0]
-          ]]
-        }
+        countryNames: ['China', 'Mongolia', 'Taiwan']
       },
       {
         id: 'spanish-empire',
@@ -466,12 +389,7 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         historicalSignificance: '1492년 콜럼버스의 신대륙 도착, 아메리카 은 유입으로 인한 유럽 가격 혁명, 무적함대.',
         majorGeographicFeatures: ['이베리아 메세타', '대서양 항로', '안데스 산맥', '포토시 은광'],
         relatedArchiveId: 'renaissance-and-exploration',
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [-9.0, 43.0], [-2.0, 43.5], [3.0, 42.0], [0.0, 38.0], [-6.0, 36.0], [-9.0, 37.0], [-9.0, 43.0]
-          ]]
-        }
+        countryNames: ['Spain', 'Portugal']
       },
       {
         id: 'mughal-empire',
@@ -486,12 +404,7 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         terrainDescription: '히말라야 산맥 남쪽의 광대한 인도-갠지스 평원과 데칸 고원. 비옥한 농토와 향신료, 면직물 생산의 중심지.',
         historicalSignificance: '악바르 대제의 종교 융합, 타지마할 건축, 세계 최대의 면직물 생산 수출국.',
         majorGeographicFeatures: ['인도-갠지스 평원', '히말라야 산맥', '야무나강', '데칸 고원'],
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [68.0, 32.0], [78.0, 34.0], [88.0, 26.0], [86.0, 20.0], [78.0, 15.0], [72.0, 20.0], [68.0, 26.0], [68.0, 32.0]
-          ]]
-        }
+        countryNames: ['India', 'Pakistan', 'Bangladesh']
       }
     ]
   },
@@ -515,12 +428,7 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         historicalSignificance: '증기기관과 산업혁명 발상지, "해가 지지 않는 제국", 1840년 아편전쟁 도발 및 파운드화 금융 패권.',
         majorGeographicFeatures: ['템스강', '도버 해협', '수에즈 운하', '전 지구적 식민지망'],
         relatedArchiveId: 'industrial-revolution',
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [-5.5, 50.0], [-1.0, 50.5], [1.5, 52.5], [-2.0, 56.0], [-5.0, 58.5], [-6.0, 55.0], [-4.5, 52.0], [-5.5, 50.0]
-          ]]
-        }
+        countryNames: ['United Kingdom', 'Ireland']
       },
       {
         id: 'united-states',
@@ -536,12 +444,7 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         historicalSignificance: '1776년 독립선언, 루이지애나 매입, 남북전쟁, 1·2차 대전 승리와 1944년 브레튼우즈 달러 기축통화 체제.',
         majorGeographicFeatures: ['애팔래치아 산맥', '미시시피강', '그레이트플레인스', '로키 산맥'],
         relatedArchiveId: 'us-independence',
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [-124.0, 48.5], [-95.0, 49.0], [-71.0, 45.0], [-74.0, 40.0], [-80.0, 26.0], [-97.0, 26.0], [-117.0, 32.5], [-124.0, 40.0], [-124.0, 48.5]
-          ]]
-        }
+        countryNames: ['United States of America']
       },
       {
         id: 'korean-empire-republic',
@@ -557,12 +460,7 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         historicalSignificance: '1897년 대한제국 선포, 1919년 3·1 독립만세운동 및 임시정부 수립, 1950년 한국전쟁 극복.',
         majorGeographicFeatures: ['백두대간', '휴전선(DMZ)', '한강', '대한해협'],
         relatedArchiveId: 'korea-parallel-chronicle',
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [124.3, 39.8], [128.0, 42.0], [130.8, 42.8], [129.5, 38.0], [129.2, 35.0], [126.5, 34.0], [125.8, 38.0], [124.3, 39.8]
-          ]]
-        }
+        countryNames: ['South Korea', 'North Korea']
       },
       {
         id: 'german-empire',
@@ -578,12 +476,7 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         historicalSignificance: '비스마르크의 철혈 정책과 통일, 급속한 중화학 공업화, 1914년 제1차 세계대전 참전 및 참호전.',
         majorGeographicFeatures: ['루르 공업지대', '라인강', '엘베강', '북독일 평원'],
         relatedArchiveId: 'world-war-one',
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [6.0, 50.5], [9.0, 54.5], [19.0, 54.5], [22.0, 53.5], [19.0, 50.0], [13.0, 48.0], [7.5, 48.0], [6.0, 50.5]
-          ]]
-        }
+        countryNames: ['Germany', 'Poland']
       },
       {
         id: 'russian-empire-ussr',
@@ -599,16 +492,83 @@ export const TERRAIN_ERAS: TerrainEra[] = [
         historicalSignificance: '표트르 대제의 서구화, 1917년 볼셰비키 혁명과 소련 탄생, 2차 대전 승전과 냉전의 한 축.',
         majorGeographicFeatures: ['볼가강', '우랄 산맥', '시베리아 평원', '바이칼호'],
         relatedArchiveId: 'world-war-two',
-        territoryBoundary: {
-          type: 'Polygon',
-          coordinates: [[
-            [28.0, 58.0], [45.0, 68.0], [80.0, 70.0], [130.0, 70.0], [170.0, 65.0], [140.0, 50.0], [85.0, 50.0], [50.0, 48.0], [35.0, 46.0], [28.0, 58.0]
-          ]]
-        }
+        countryNames: [
+          'Russia', 'Ukraine', 'Belarus', 'Kazakhstan', 'Uzbekistan', 'Turkmenistan',
+          'Kyrgyzstan', 'Tajikistan', 'Georgia', 'Azerbaijan', 'Armenia', 'Estonia',
+          'Latvia', 'Lithuania'
+        ]
       }
     ]
   }
 ];
+
+export const COUNTRY_NAME_KO: Record<string, string> = {
+  'Iraq': '이라크',
+  'Kuwait': '쿠웨이트',
+  'Egypt': '이집트',
+  'North Korea': '북한',
+  'South Korea': '대한민국',
+  'China': '중국',
+  'Greece': '그리스',
+  'Cyprus': '키프로스',
+  'Iran': '이란',
+  'Turkey': '튀르키예',
+  'Syria': '시리아',
+  'Jordan': '요르단',
+  'Lebanon': '레바논',
+  'Israel': '이스라엘',
+  'Palestine': '팔레스타인',
+  'Armenia': '아르메니아',
+  'Azerbaijan': '아제르바이잔',
+  'Afghanistan': '아프가니스탄',
+  'Italy': '이탈리아',
+  'Spain': '스페인',
+  'Portugal': '포르투갈',
+  'France': '프랑스',
+  'United Kingdom': '영국',
+  'Belgium': '벨기에',
+  'Switzerland': '스위스',
+  'Austria': '오스트리아',
+  'Slovenia': '슬로베니아',
+  'Croatia': '크로아티아',
+  'Bosnia and Herz.': '보스니아 헤르체고비나',
+  'Serbia': '세르비아',
+  'Montenegro': '몬테네그로',
+  'Albania': '알바니아',
+  'Macedonia': '북마케도니아',
+  'Bulgaria': '불가리아',
+  'Romania': '루마니아',
+  'Libya': '리비아',
+  'Tunisia': '튀니지',
+  'Algeria': '알제리',
+  'Morocco': '모로코',
+  'Turkmenistan': '투르크메니스탄',
+  'Pakistan': '파키스탄',
+  'Tajikistan': '타지키스탄',
+  'Uzbekistan': '우즈베키스탄',
+  'Saudi Arabia': '사우디아라비아',
+  'United Arab Emirates': '아랍에미리트',
+  'Oman': '오만',
+  'Mongolia': '몽골',
+  'Russia': '러시아',
+  'Kazakhstan': '카자흐스탄',
+  'Kyrgyzstan': '키르기스스탄',
+  'Czechia': '체코',
+  'Netherlands': '네덜란드',
+  'Taiwan': '대만',
+  'India': '인도',
+  'Bangladesh': '방글라데시',
+  'Ireland': '아일랜드',
+  'United States of America': '미국',
+  'Poland': '폴란드',
+  'Ukraine': '우크라이나',
+  'Belarus': '벨라루스',
+  'Georgia': '조지아',
+  'Estonia': '에스토니아',
+  'Latvia': '라트비아',
+  'Lithuania': '리투아니아',
+  'Germany': '독일'
+};
 
 export interface GeographicFeature {
   name: string;
@@ -626,6 +586,10 @@ export const REAL_GEOGRAPHIC_FEATURES: GeographicFeature[] = [
   { name: '백두대간', type: 'mountain', coordinates: [128.5, 37.5] },
   { name: '로키 산맥', type: 'mountain', coordinates: [-110.0, 45.0] },
   { name: '안데스 산맥', type: 'mountain', coordinates: [-72.0, -15.0] },
+  { name: '토로스 산맥', type: 'mountain', coordinates: [33.0, 37.2] },
+  { name: '피레네 산맥', type: 'mountain', coordinates: [1.0, 42.6] },
+  { name: '톈산 산맥', type: 'mountain', coordinates: [80.0, 42.0] },
+  { name: '카르파티아 산맥', type: 'mountain', coordinates: [24.5, 47.0] },
 
   // Key Civilizational Rivers (polyline of [lng, lat])
   {
@@ -659,6 +623,24 @@ export const REAL_GEOGRAPHIC_FEATURES: GeographicFeature[] = [
     path: [[8.5, 48.0], [12.0, 48.5], [17.0, 48.0], [21.0, 45.0], [28.0, 45.2]]
   },
   {
+    name: '라인강',
+    type: 'river',
+    coordinates: [7.5, 50.0],
+    path: [[9.5, 47.2], [8.0, 48.5], [7.6, 50.2], [6.8, 51.2], [4.5, 51.9]]
+  },
+  {
+    name: '인더스강',
+    type: 'river',
+    coordinates: [70.5, 28.5],
+    path: [[76.0, 33.5], [73.5, 34.2], [71.0, 31.5], [68.5, 27.0], [67.5, 24.2]]
+  },
+  {
+    name: '갠지스강',
+    type: 'river',
+    coordinates: [84.0, 25.5],
+    path: [[79.0, 30.0], [81.5, 26.5], [85.5, 25.4], [89.0, 23.5], [90.5, 22.0]]
+  },
+  {
     name: '미시시피강',
     type: 'river',
     coordinates: [-90.0, 35.0],
@@ -670,13 +652,37 @@ export const REAL_GEOGRAPHIC_FEATURES: GeographicFeature[] = [
     coordinates: [127.0, 37.5],
     path: [[128.5, 37.2], [127.5, 37.5], [126.7, 37.7]]
   },
+  {
+    name: '대동강',
+    type: 'river',
+    coordinates: [125.8, 39.0],
+    path: [[126.8, 39.8], [125.7, 39.0], [125.2, 38.7]]
+  },
+  {
+    name: '압록강',
+    type: 'river',
+    coordinates: [125.5, 40.5],
+    path: [[128.1, 41.9], [126.0, 41.0], [124.4, 39.9]]
+  },
+  {
+    name: '볼가강',
+    type: 'river',
+    coordinates: [47.5, 51.5],
+    path: [[35.0, 57.0], [41.0, 57.5], [49.0, 55.8], [48.0, 52.0], [47.8, 47.0]]
+  },
 
-  // Seas
+  // Seas & Oceans
   { name: '지중해 (Mediterranean)', type: 'sea', coordinates: [18.0, 35.0] },
   { name: '동해 (East Sea)', type: 'sea', coordinates: [132.0, 39.0] },
   { name: '황해·서해', type: 'sea', coordinates: [123.0, 35.0] },
   { name: '페르시아만', type: 'sea', coordinates: [51.0, 27.0] },
+  { name: '홍해 (Red Sea)', type: 'sea', coordinates: [38.0, 21.0] },
   { name: '흑해 (Black Sea)', type: 'sea', coordinates: [34.0, 43.5] },
-  { name: '대서양', type: 'sea', coordinates: [-30.0, 35.0] },
-  { name: '태평양', type: 'sea', coordinates: [160.0, 30.0] }
+  { name: '카스피해 (Caspian Sea)', type: 'sea', coordinates: [51.0, 41.0] },
+  { name: '에게해 (Aegean Sea)', type: 'sea', coordinates: [25.5, 38.0] },
+  { name: '발트해 (Baltic Sea)', type: 'sea', coordinates: [19.0, 57.0] },
+  { name: '북해 (North Sea)', type: 'sea', coordinates: [3.0, 56.0] },
+  { name: '대서양 (Atlantic)', type: 'sea', coordinates: [-30.0, 35.0] },
+  { name: '태평양 (Pacific)', type: 'sea', coordinates: [160.0, 30.0] },
+  { name: '인도양 (Indian Ocean)', type: 'sea', coordinates: [75.0, -5.0] }
 ];
