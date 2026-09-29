@@ -20,6 +20,9 @@ export interface TerrainEra {
   title: string;
   period: string;
   summary: string;
+  themeColor: string;
+  eraBadge: string;
+  dashPattern: string;
   nations: HistoricalNation[];
 }
 
